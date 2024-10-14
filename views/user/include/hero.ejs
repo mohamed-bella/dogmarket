@@ -1,0 +1,28 @@
+<section class="hero">
+     <div class="container">
+          <div class="row justify-content-center">
+               <div class="col-md-10">
+                    <form action="/tous-les-annonces" method="GET" class="search-container d-flex align-items-center">
+                         <!-- Location option -->
+                         <select class="form-select search-input me-3" name="location">
+                              <option value="" selected>Choisissez une ville</option>
+                              <option value="casablanca">Casablanca</option>
+                              <option value="rabat">Rabat</option>
+                              <option value="marrakech">Marrakech</option>
+                         </select>
+
+
+                         <!-- Animal Type Selection -->
+                         <select class="form-select search-input me-3" name="animalType">
+                              <option value="" selected>Choisissez un animal</option>
+                              <option value="dog">Chien</option>
+                              <option value="cat">Chat</option>
+                         </select>
+
+                         <!-- Search Button -->
+                         <button type="submit" class="search-btn">Rechercher</button>
+                    </form>
+               </div>
+          </div>
+     </div>
+</section>
