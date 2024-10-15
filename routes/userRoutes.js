@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const upload = require('../config/multer'); // Multer config with Cloudinary
+// const upload = require('../config/multer'); // Multer config with Cloudinary
 const Announcement = require('../models/announcement'); // Your announcement model
 
 // GET: Homepage with Announcements Slider
@@ -57,32 +57,35 @@ router.get('/dashboard', async (req, res) => {
           res.redirect('/');
      }
 });
-// POST route to handle the image upload
-router.post('/upload', upload.single('image'), (req, res) => {
-     try {
-          // The uploaded file is stored in req.file
-          if (!req.file) {
-               return res.status(400).send('No file uploaded.');
+
+
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const sharp = require('sharp');
+
+// Set up multer for file uploads (saving locally)
+const storage = multer.diskStorage({
+     destination: (req, file, cb) => {
+          const uploadDir = path.join(__dirname, '../uploads');
+          if (!fs.existsSync(uploadDir)) {
+               fs.mkdirSync(uploadDir);
           }
-
-          // Log uploaded file details (optional)
-          console.log('File uploaded:', req.file);
-
-          // Send back the URL of the uploaded image
-          res.json({ imageUrl: req.file.path });
-     } catch (error) {
-          console.error('Error uploading image:', error);
-          res.status(500).send('An error occurred during the upload.');
+          cb(null, uploadDir);
+     },
+     filename: (req, file, cb) => {
+          cb(null, Date.now() + path.extname(file.originalname));  // Original extension
      }
 });
-// POST: Handle New Announcement
+
+const upload = multer({ storage: storage });
+
 router.post('/announcements/new', upload.array('images', 10), async (req, res) => {
-     console.log('uploading image started ')
-     console.log(JSON.stringify(req.file, null, 2)); // Pretty-print the object
+     console.log('Image upload started');
+
      try {
           // Extract form data
           const {
-
                description,
                announcementType,
                animalType,
@@ -98,12 +101,32 @@ router.post('/announcements/new', upload.array('images', 10), async (req, res) =
                email
           } = req.body;
 
-          // Extract uploaded files from Cloudinary (returned by Multer)
-          const imageUrls = req.files.map(file => file.path);
+          // Check if files were uploaded
+          if (!req.files || req.files.length === 0) {
+               return res.status(400).json({ success: false, message: 'No images uploaded' });
+          }
 
-          // Create new announcement
+          const imageUrls = [];
+
+          // Convert uploaded images to WebP format and save them
+          for (const file of req.files) {
+               const localFilePath = path.join(__dirname, '../uploads', file.filename);
+               const webpFilePath = path.join(__dirname, '../uploads', Date.now() + '.webp');
+
+               // Convert to WebP using sharp
+               await sharp(localFilePath)
+                    .webp({ quality: 80 })
+                    .toFile(webpFilePath);
+
+               // Remove the original image
+               fs.unlinkSync(localFilePath);
+
+               // Save the WebP file URL
+               imageUrls.push(`/uploads/${path.basename(webpFilePath)}`);
+          }
+
+          // Create a new announcement
           const newAnnouncement = new Announcement({
-
                description,
                announcementType,
                animalType,
@@ -112,29 +135,90 @@ router.post('/announcements/new', upload.array('images', 10), async (req, res) =
                gender,
                vaccination,
                sterilization,
-               price: announcementType === 'sale' ? price : null, // Only store price for sale announcements
-               adoptionFee: announcementType === 'adoption' ? adoptionFee : null, // Only store adoption fee for adoption
+               price: announcementType === 'sale' ? price : null,  // Only store price for sale announcements
+               adoptionFee: announcementType === 'adoption' ? adoptionFee : null,  // Only store adoption fee for adoption
                location,
-               images: imageUrls, // Store Cloudinary URLs
+               images: imageUrls,  // Store WebP URLs
                whatsapp,
                email,
-               user: req.user._id, // Link announcement to the logged-in user
+               user: req.user._id  // Link announcement to the logged-in user
           });
 
           // Save the announcement to the database
           await newAnnouncement.save();
 
-          // Respond with success message in JSON format
+          // Respond with success message
           res.json({ success: true, message: 'Announcement added successfully!' });
-
      } catch (err) {
           console.error('Error adding announcement:', err);
-
-
-          // Send error message in JSON format
           res.status(500).json({ success: false, message: 'Internal Server Error' });
      }
 });
+
+
+
+
+
+// POST: Handle New Announcement
+// router.post('/announcements/new', upload.array('images', 10), async (req, res) => {
+//      console.log('uploading image started ')
+//      console.log(JSON.stringify(req.file, null, 2)); // Pretty-print the object
+//      try {
+//           // Extract form data
+//           const {
+
+//                description,
+//                announcementType,
+//                animalType,
+//                breed,
+//                age,
+//                gender,
+//                vaccination,
+//                sterilization,
+//                price,
+//                adoptionFee,
+//                location,
+//                whatsapp,
+//                email
+//           } = req.body;
+
+//           // Extract uploaded files from Cloudinary (returned by Multer)
+//           const imageUrls = req.files.map(file => file.path);
+
+//           // Create new announcement
+//           const newAnnouncement = new Announcement({
+
+//                description,
+//                announcementType,
+//                animalType,
+//                breed,
+//                age,
+//                gender,
+//                vaccination,
+//                sterilization,
+//                price: announcementType === 'sale' ? price : null, // Only store price for sale announcements
+//                adoptionFee: announcementType === 'adoption' ? adoptionFee : null, // Only store adoption fee for adoption
+//                location,
+//                images: imageUrls, // Store Cloudinary URLs
+//                whatsapp,
+//                email,
+//                user: req.user._id, // Link announcement to the logged-in user
+//           });
+
+//           // Save the announcement to the database
+//           await newAnnouncement.save();
+
+//           // Respond with success message in JSON format
+//           res.json({ success: true, message: 'Announcement added successfully!' });
+
+//      } catch (err) {
+//           console.error('Error adding announcement:', err);
+
+
+//           // Send error message in JSON format
+//           res.status(500).json({ success: false, message: 'Internal Server Error' });
+//      }
+// });
 
 
 // DELETE: Handle Deleting an Announcement
