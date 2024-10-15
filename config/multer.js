@@ -1,15 +1,16 @@
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('./cloudinary');
-const winston = require('winston'); // Add a logger to capture errors
+const cloudinary = require('./cloudinary'); // Import the Cloudinary configuration
+
 
 const storage = new CloudinaryStorage({
      cloudinary: cloudinary,
      params: async (req, file) => {
-          try {
-               const isImage = file.mimetype.startsWith('image/');
+          const isImage = file.mimetype.startsWith('image/');
 
-               const transformations = isImage ? [
+          // Apply transformations only if the file is an image
+          const transformations = isImage
+               ? [
                     {
                          overlay: {
                               font_family: "Arial",
@@ -22,20 +23,19 @@ const storage = new CloudinaryStorage({
                          x: 0,
                          y: 0
                     }
-               ] : [];
+               ]
+               : [];
 
-               return {
-                    folder: 'announcements',
-                    resource_type: 'auto',
-                    transformation: transformations,
-               };
-          } catch (error) {
-               winston.error("Cloudinary upload error:", error);  // Log the error
-               throw error;
-          }
+          return {
+               folder: 'announcements',
+               resource_type: 'auto',
+               transformation: transformations,
+          };
      }
 });
 
+
 const upload = multer({ storage });
+
 
 module.exports = upload;
