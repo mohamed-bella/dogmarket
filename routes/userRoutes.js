@@ -57,7 +57,24 @@ router.get('/dashboard', async (req, res) => {
           res.redirect('/');
      }
 });
+// POST route to handle the image upload
+router.post('/upload', upload.single('image'), (req, res) => {
+     try {
+          // The uploaded file is stored in req.file
+          if (!req.file) {
+               return res.status(400).send('No file uploaded.');
+          }
 
+          // Log uploaded file details (optional)
+          console.log('File uploaded:', req.file);
+
+          // Send back the URL of the uploaded image
+          res.json({ imageUrl: req.file.path });
+     } catch (error) {
+          console.error('Error uploading image:', error);
+          res.status(500).send('An error occurred during the upload.');
+     }
+});
 // POST: Handle New Announcement
 router.post('/announcements/new', upload.array('images', 10), async (req, res) => {
      console.log('uploading image started ')
