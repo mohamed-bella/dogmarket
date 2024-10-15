@@ -60,6 +60,8 @@ router.get('/dashboard', async (req, res) => {
 
 // POST: Handle New Announcement
 router.post('/announcements/new', upload.array('images', 10), async (req, res) => {
+     console.log('uploading image started ')
+     console.log(JSON.stringify(req.file, null, 2)); // Pretty-print the object
      try {
           // Extract form data
           const {
@@ -110,6 +112,7 @@ router.post('/announcements/new', upload.array('images', 10), async (req, res) =
 
      } catch (err) {
           console.error('Error adding announcement:', err);
+
 
           // Send error message in JSON format
           res.status(500).json({ success: false, message: 'Internal Server Error' });
